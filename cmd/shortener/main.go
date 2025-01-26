@@ -1,6 +1,8 @@
 package main
 
-import "url-shortener/internal/app"
+import (
+	"url-shortener/internal/app"
+)
 
 func main() {
 	if err := app.Run(); err != nil {

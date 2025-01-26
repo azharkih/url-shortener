@@ -1,8 +1,11 @@
-package app
+package handlers
 
-import "net/http"
+import (
+	"net/http"
+	"url-shortener/internal/storage"
+)
 
-func GetShortUrl(w http.ResponseWriter, r *http.Request) {
+func GetShortURL(w http.ResponseWriter, r *http.Request) {
 	// этот обработчик принимает только запросы, отправленные методом GET
 	if r.Method != http.MethodGet {
 		http.Error(w, "Only GET requests are allowed!", http.StatusMethodNotAllowed)
@@ -10,11 +13,10 @@ func GetShortUrl(w http.ResponseWriter, r *http.Request) {
 	}
 
 	idx := r.PathValue("id")
-	fullUrl, ok := Urls[idx]
-	if !ok {
+	if shortURL, err := storage.Repository.ShortURL(idx); err == nil {
+		http.Redirect(w, r, shortURL.FullURL, http.StatusTemporaryRedirect)
+	} else {
 		http.Error(w, "Not found!", http.StatusNotFound)
 		return
 	}
-
-	http.Redirect(w, r, fullUrl, http.StatusTemporaryRedirect)
 }

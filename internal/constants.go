@@ -1,7 +1,7 @@
-package app
+package internal
 
 const (
 	AppHost = "localhost"
 	AppPort = "8080"
-	BaseUrl = AppHost + ":" + AppPort
+	BaseURL = AppHost + ":" + AppPort
 )
