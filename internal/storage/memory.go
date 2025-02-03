@@ -5,13 +5,6 @@ import (
 	"sync"
 )
 
-type Storage interface {
-	ShortURL(id int) (*ShortURL, error)
-	ShortURLs(ids []int) ([]*ShortURL, error)
-	CreateShortURL(shortURL *ShortURL) error
-	UpdateShortURL(shortURL *ShortURL) error
-}
-
 type MemoryStorage struct {
 	sync.RWMutex
 	shortURLRecords map[string]*ShortURLRecord

@@ -1,13 +1,22 @@
 package app
 
 import (
-	"net/http"
+	"github.com/go-chi/chi/v5"
 	"url-shortener/internal/handlers"
+	"url-shortener/internal/storage"
 )
 
-var router = http.NewServeMux()
+func NewAppMux() *chi.Mux {
+	router := chi.NewRouter()
 
-func init() {
-	router.HandleFunc(`/`, handlers.PostRoot)
-	router.HandleFunc(`/{id}`, handlers.GetShortURL)
+	// Создаем экземпляр обработчика с зависимостью
+	handler := &handlers.Handler{
+		CreateShortLink: storage.CreateShortLink, // Передаем функцию генерации ссылок
+	}
+
+	// Регистрируем обработчики
+	router.Post("/", handler.PostRoot)
+	router.Get("/{id}", handlers.GetShortURL)
+
+	return router
 }

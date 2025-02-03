@@ -6,5 +6,6 @@ import (
 )
 
 func Run() error {
+	router := NewAppMux()
 	return http.ListenAndServe(internal.BaseURL, router)
 }

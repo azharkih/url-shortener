@@ -1,18 +1,21 @@
 package handlers
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"url-shortener/internal"
 	"url-shortener/internal/storage"
 )
 
-func PostRoot(w http.ResponseWriter, r *http.Request) {
+// Handler содержит зависимости
+type Handler struct {
+	CreateShortLink func(string) string
+	Repo            storage.Storage
+}
+
+func (h *Handler) PostRoot(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		// разрешаем только POST-запросы
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		http.Error(w, "Only POST requests are allowed!", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -27,21 +30,9 @@ func PostRoot(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	link := createShortLink(fullURL)
-	w.WriteHeader(http.StatusCreated)
+
+	link := h.CreateShortLink(fullURL)
 	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusCreated)
 	_, _ = w.Write([]byte(link))
-}
-
-func createShortLink(url string) string {
-	for {
-		shortURL := storage.NewShortURL(url)
-		if item, _ := storage.Repository.ShortURL(shortURL.ID); item != nil {
-			continue
-		}
-		if err := storage.Repository.CreateShortURL(shortURL); err == nil {
-			return fmt.Sprintf("http://%s/%s", internal.BaseURL, shortURL.ID)
-		}
-
-	}
 }

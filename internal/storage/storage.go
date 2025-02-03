@@ -1,12 +1,21 @@
 package storage
 
 import (
+	"fmt"
 	"math/rand"
 	"strings"
 	"time"
+	"url-shortener/internal"
 )
 
-var Repository = NewMemoryStorage()
+var Repository Storage = NewMemoryStorage()
+
+type Storage interface {
+	ShortURL(id string) (*ShortURL, error)
+	ShortURLs(ids []string) ([]*ShortURL, error)
+	CreateShortURL(shortURL *ShortURL) error
+	UpdateShortURL(shortURL *ShortURL) error
+}
 
 type ShortURL struct {
 	ID      string
@@ -34,4 +43,17 @@ func getRandString(countOfChars int) string {
 	}
 
 	return shortcode.String()
+}
+
+// Функция генерации ссылки
+func CreateShortLink(url string) string {
+	for {
+		shortURL := NewShortURL(url)
+		if item, _ := Repository.ShortURL(shortURL.ID); item != nil {
+			continue
+		}
+		if err := Repository.CreateShortURL(shortURL); err == nil {
+			return fmt.Sprintf("http://%s/%s", internal.BaseURL, shortURL.ID)
+		}
+	}
 }
