@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"strings"
 	"time"
-	"url-shortener/internal"
+	"url-shortener/cmd/config"
 )
 
 var Repository Storage = NewMemoryStorage()
@@ -53,7 +53,7 @@ func CreateShortLink(url string) string {
 			continue
 		}
 		if err := Repository.CreateShortURL(shortURL); err == nil {
-			return fmt.Sprintf("http://%s/%s", internal.BaseURL, shortURL.ID)
+			return fmt.Sprintf("%s/%s", config.BaseShortURL, shortURL.ID)
 		}
 	}
 }
