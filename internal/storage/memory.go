@@ -5,20 +5,20 @@ import (
 	"sync"
 )
 
+// MemoryStorage Структура для хранения в памяти
 type MemoryStorage struct {
 	sync.RWMutex
 	shortURLRecords map[string]*ShortURLRecord
 }
 
-type ShortURLRecord struct {
-	shortURL *ShortURL
-}
-
 func NewMemoryStorage() *MemoryStorage {
 	return &MemoryStorage{
-		sync.RWMutex{},
-		map[string]*ShortURLRecord{},
+		shortURLRecords: make(map[string]*ShortURLRecord),
 	}
+}
+
+type ShortURLRecord struct {
+	shortURL *ShortURL
 }
 
 func (storage *MemoryStorage) shortURLRecord(idx string) (*ShortURLRecord, error) {

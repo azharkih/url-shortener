@@ -6,17 +6,16 @@ import (
 	"url-shortener/internal/storage"
 )
 
-func NewAppMux() *chi.Mux {
+func NewAppMux(s *storage.Service) *chi.Mux {
 	router := chi.NewRouter()
 
-	// Создаем экземпляр обработчика с зависимостью
 	handler := &handlers.Handler{
-		CreateShortLink: storage.CreateShortLink, // Передаем функцию генерации ссылок
+		Service: s,
 	}
 
 	// Регистрируем обработчики
 	router.Post("/", handler.PostRoot)
-	router.Get("/{id}", handlers.GetShortURL)
+	router.Get("/{id}", handler.GetShortURL)
 
 	return router
 }

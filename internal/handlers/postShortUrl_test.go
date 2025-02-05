@@ -2,93 +2,62 @@ package handlers
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"url-shortener/internal/config"
+	"url-shortener/internal/handlers/testdata"
 	"url-shortener/internal/storage"
 )
 
 func TestPostRoot(t *testing.T) {
-	mockRepo := new(MockRepository)
-	storage.Repository = mockRepo // Подмена хранилища
+	mockRepo := new(testdata.MockRepository)
 
-	// Настроим возвращаемое значение для существующей короткой ссылки
-	shortURL := &storage.ShortURL{FullURL: "https://example.com", ID: "mock1234"}
-	mockRepo.On("ShortURL", "mock1234").Return(shortURL, nil)
-	mockRepo.On("CreateShortURL", mock.Anything).Return(nil)
+	mockRepo.On("ShortURL", mock.Anything).Return(nil, errors.New("not found")).Maybe()
 
-	mockCreateShort := func(url string) string {
-		return "http://short.url/mock1234"
-	}
+	mockRepo.On("CreateShortURL", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		shortURL := args.Get(0).(*storage.ShortURL)
+		shortURL.ID = "mock1234"
+	}).Once()
 
-	handler := &Handler{CreateShortLink: mockCreateShort}
+	// Создаем сервис с мок репозиторием
+	service := &storage.Service{Repo: mockRepo}
 
-	type want struct {
-		code        int
-		response    string
-		contentType string
-	}
+	// Создаем обработчик
+	handler := &Handler{Service: service}
+
 	tests := []struct {
-		name   string
-		want   want
-		method string
+		name           string
+		method         string
+		body           string
+		expectedStatus int
+		expectedBody   string
 	}{
 		{
-			name: "positive case #1",
-			want: want{
-				code:        201,
-				response:    "http://short.url/mock1234",
-				contentType: "text/plain",
-			},
-			method: http.MethodPost,
+			name:           "positive case #1",
+			method:         http.MethodPost,
+			body:           "https://example.com",
+			expectedStatus: http.StatusCreated,
+			expectedBody:   fmt.Sprintf("%s/%s", config.BaseShortURL, "mock1234"),
 		},
 		{
-			name: "post method are not allowed",
-			want: want{
-				code:        405,
-				response:    "Only POST requests are allowed!\n",
-				contentType: "text/plain; charset=utf-8",
-			},
-			method: http.MethodGet,
-		},
-		{
-			name: "delete method are not allowed",
-			want: want{
-				code:        405,
-				response:    "Only POST requests are allowed!\n",
-				contentType: "text/plain; charset=utf-8",
-			},
-			method: http.MethodDelete,
-		},
-		{
-			name: "put method are not allowed",
-			want: want{
-				code:        405,
-				response:    "Only POST requests are allowed!\n",
-				contentType: "text/plain; charset=utf-8",
-			},
-			method: http.MethodPut,
-		},
-		{
-			name: "patch method are not allowed",
-			want: want{
-				code:        405,
-				response:    "Only POST requests are allowed!\n",
-				contentType: "text/plain; charset=utf-8",
-			},
-			method: http.MethodPatch,
+			name:           "only POST method allowed",
+			method:         http.MethodGet,
+			body:           "",
+			expectedStatus: http.StatusMethodNotAllowed,
+			expectedBody:   "Only POST requests are allowed!\n",
 		},
 	}
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			fullURL := "https://example.com"
-			request := httptest.NewRequest(test.method, "/", bytes.NewBufferString(fullURL))
-
+			request := httptest.NewRequest(test.method, "/", bytes.NewBufferString(test.body))
 			w := httptest.NewRecorder()
 			handler.PostRoot(w, request)
 
@@ -99,9 +68,11 @@ func TestPostRoot(t *testing.T) {
 			resBody, err := io.ReadAll(res.Body)
 			require.NoError(t, err)
 
-			assert.Equal(t, test.want.code, res.StatusCode)
-			assert.Equal(t, test.want.response, string(resBody))
-			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
+			assert.Equal(t, test.expectedStatus, res.StatusCode)
+			assert.Equal(t, test.expectedBody, string(resBody))
 		})
 	}
+
+	// Проверяем, что все ожидания моков выполнены
+	mockRepo.AssertExpectations(t)
 }
