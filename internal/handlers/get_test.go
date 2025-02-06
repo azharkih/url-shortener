@@ -10,17 +10,18 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"url-shortener/internal/handlers/models"
 	"url-shortener/internal/handlers/testdata"
 	"url-shortener/internal/service"
-	"url-shortener/internal/storage"
 )
 
 func TestGetShortURL(t *testing.T) {
 	mockRepo := new(testdata.MockRepository)
 	mockService := &service.Service{Repo: mockRepo}
+	handler := NewHandler(mockService)
 
 	// Настроим возвращаемое значение для существующей короткой ссылки
-	shortURL := &storage.ShortURL{FullURL: "https://example.com", ID: "1234Qwer"}
+	shortURL := &models.ShortURL{FullURL: "https://example.com", ID: "1234Qwer"}
 	mockRepo.On("GetShortURL", "1234Qwer").Return(shortURL, nil)
 	mockRepo.On("GetShortURL", "as123DD1").Return(nil, errors.New("not found"))
 
@@ -98,8 +99,6 @@ func TestGetShortURL(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			handler := &Handler{Service: mockService}
-
 			request := httptest.NewRequest(test.method, test.path, nil)
 			ctx := chi.NewRouteContext()
 			ctx.URLParams.Add("id", test.path[1:]) // Убираем '/'

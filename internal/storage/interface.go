@@ -1,28 +1,15 @@
 package storage
 
-import (
-	"time"
-	"url-shortener/internal/utils"
-)
+import "url-shortener/internal/handlers/models"
 
-// Storage  Интерфейс хранилища
-type Storage interface {
-	GetShortURL(id string) (*ShortURL, error)
-	SetShortURL(shortURL *ShortURL) error
+// TODO переместить в другой пакет
+
+// Shortener определяет поведение сохранения сокращенной ссылки.
+type Shortener interface {
+	SetShortURL(shortURL *models.ShortURL) error
 }
 
-// ShortURL Структура для короткой ссылки
-type ShortURL struct {
-	ID      string
-	FullURL string
-	Created int64
-}
-
-// NewShortURL Функция для создания объекта ShortURL
-func NewShortURL(fullURL string) *ShortURL {
-	return &ShortURL{
-		ID:      utils.GetRandString(8),
-		FullURL: fullURL,
-		Created: time.Now().Unix(),
-	}
+// Retriever определяет поведение извлечения оригинальной ссылки.
+type Retriever interface {
+	GetShortURL(id string) (*models.ShortURL, error)
 }

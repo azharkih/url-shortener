@@ -3,17 +3,24 @@ package service
 import (
 	"fmt"
 	"url-shortener/internal/config"
+	"url-shortener/internal/handlers/models"
 	"url-shortener/internal/storage"
 )
 
+// Storage объединяет оба интерфейса
+type Storage interface {
+	storage.Shortener
+	storage.Retriever
+}
+
 // Service Сервис для работы с URL
 type Service struct {
-	Repo   storage.Storage
+	Repo   Storage
 	Config *config.Config
 }
 
 // NewService Конструктор сервиса
-func NewService(repo storage.Storage, config *config.Config) *Service {
+func NewService(repo Storage, config *config.Config) *Service {
 	return &Service{Repo: repo, Config: config}
 }
 
@@ -22,7 +29,7 @@ func (s *Service) CreateShortLink(url string) (string, error) {
 	const maxAttempts = 10
 
 	for i := 0; i < maxAttempts; i++ {
-		shortURL := storage.NewShortURL(url)
+		shortURL := models.NewShortURL(url)
 
 		// Проверка, существует ли уже такая короткая ссылка
 		_, err := s.Repo.GetShortURL(shortURL.ID)

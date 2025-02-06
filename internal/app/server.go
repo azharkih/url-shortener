@@ -8,10 +8,7 @@ import (
 
 func NewAppMux(s *service.Service) *chi.Mux {
 	router := chi.NewRouter()
-
-	handler := &handlers.Handler{
-		Service: s,
-	}
+	handler := handlers.NewHandler(s)
 
 	// Регистрируем обработчики
 	router.Post("/", handler.PostRoot)

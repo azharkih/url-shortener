@@ -12,9 +12,9 @@ import (
 	"net/http/httptest"
 	"testing"
 	"url-shortener/internal/config"
+	"url-shortener/internal/handlers/models"
 	"url-shortener/internal/handlers/testdata"
 	"url-shortener/internal/service"
-	"url-shortener/internal/storage"
 )
 
 func TestPostRoot(t *testing.T) {
@@ -23,7 +23,7 @@ func TestPostRoot(t *testing.T) {
 	mockRepo.On("GetShortURL", mock.Anything).Return(nil, errors.New("not found")).Maybe()
 
 	mockRepo.On("SetShortURL", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		shortURL := args.Get(0).(*storage.ShortURL)
+		shortURL := args.Get(0).(*models.ShortURL)
 		shortURL.ID = "mock1234"
 	}).Once()
 
@@ -31,9 +31,7 @@ func TestPostRoot(t *testing.T) {
 	require.NoError(t, err) // Проверяем, что конфиг успешно загружен
 
 	mockService := &service.Service{Repo: mockRepo, Config: cfg}
-
-	// Создаем обработчик
-	handler := &Handler{Service: mockService}
+	handler := NewHandler(mockService)
 
 	tests := []struct {
 		name           string
