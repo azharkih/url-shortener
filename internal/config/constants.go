@@ -3,33 +3,42 @@ package config
 import (
 	"flag"
 	"fmt"
-	"os"
+	"github.com/caarlos0/env/v10"
 )
 
-// Переменные конфигурации
-var (
-	ServerAddress string // Адрес HTTP-сервера (-a)
-	BaseShortURL  string // Базовый URL сокращённых ссылок (-b)
-)
-
-// Инициализация конфигурации
-func Init() {
-	// Определение флагов
-	a := flag.String("a", getEnv("APP_ADDRESS", "localhost:8080"), "Address for HTTP server (e.g., localhost:8888)")
-	b := flag.String("b", getEnv("BASE_URL", fmt.Sprintf("http://%s", *a)), "Base URL for short links (e.g., http://localhost:8000/)")
-
-	// Разбор флагов
-	flag.Parse()
-
-	// Присваивание значений глобальным переменным
-	ServerAddress = *a
-	BaseShortURL = *b
+// Config содержит настройки приложения
+type Config struct {
+	ServerAddress string `env:"APP_ADDRESS" envDefault:"localhost:8080"`
+	BaseShortURL  string `env:"BASE_URL" envDefault:"http://localhost:8080"`
 }
 
-// getEnv получает значение переменной окружения или возвращает значение по умолчанию
-func getEnv(key, defaultValue string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return value
+// NewConfig загружает конфигурацию из переменных окружения и флагов
+func NewConfig() (*Config, error) {
+	cfg := Config{}
+
+	// Парсим переменные окружения
+	if err := env.Parse(&cfg); err != nil {
+		return nil, err
 	}
-	return defaultValue
+
+	// Определяем флаги
+	serverAddr := flag.String(
+		"a", cfg.ServerAddress, "Address for HTTP server (e.g., localhost:8080)")
+	baseURL := flag.String(
+		"b", cfg.BaseShortURL, "Base URL for short links (e.g., http://localhost:8080)")
+
+	// Разбираем флаги
+	flag.Parse()
+
+	// Применяем значения флагов, если они были переданы
+	if *serverAddr != "" {
+		cfg.ServerAddress = *serverAddr
+	}
+	if *baseURL != "" {
+		cfg.BaseShortURL = *baseURL
+	} else {
+		cfg.BaseShortURL = fmt.Sprintf("http://%s", cfg.ServerAddress)
+	}
+
+	return &cfg, nil
 }

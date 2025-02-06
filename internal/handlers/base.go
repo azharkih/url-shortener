@@ -1,7 +1,9 @@
 package handlers
 
-import "url-shortener/internal/storage"
+import (
+	"url-shortener/internal/service"
+)
 
 type Handler struct {
-	Service *storage.Service
+	Service *service.Service
 }

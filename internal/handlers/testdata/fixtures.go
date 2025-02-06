@@ -10,7 +10,7 @@ type MockRepository struct {
 }
 
 // ShortURL возвращает короткую ссылку по ID.
-func (m *MockRepository) ShortURL(id string) (*storage.ShortURL, error) {
+func (m *MockRepository) GetShortURL(id string) (*storage.ShortURL, error) {
 	args := m.Called(id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -18,7 +18,7 @@ func (m *MockRepository) ShortURL(id string) (*storage.ShortURL, error) {
 	return args.Get(0).(*storage.ShortURL), args.Error(1)
 }
 
-func (m *MockRepository) CreateShortURL(shortURL *storage.ShortURL) error {
+func (m *MockRepository) SetShortURL(shortURL *storage.ShortURL) error {
 	args := m.Called(shortURL)
 	return args.Error(0)
 }
@@ -26,9 +26,4 @@ func (m *MockRepository) CreateShortURL(shortURL *storage.ShortURL) error {
 func (m *MockRepository) ShortURLs(ids []string) ([]*storage.ShortURL, error) {
 	args := m.Called(ids)
 	return args.Get(0).([]*storage.ShortURL), args.Error(1)
-}
-
-func (m *MockRepository) UpdateShortURL(shortURL *storage.ShortURL) error {
-	args := m.Called(shortURL)
-	return args.Error(0)
 }

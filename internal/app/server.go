@@ -3,10 +3,10 @@ package app
 import (
 	"github.com/go-chi/chi/v5"
 	"url-shortener/internal/handlers"
-	"url-shortener/internal/storage"
+	"url-shortener/internal/service"
 )
 
-func NewAppMux(s *storage.Service) *chi.Mux {
+func NewAppMux(s *service.Service) *chi.Mux {
 	router := chi.NewRouter()
 
 	handler := &handlers.Handler{

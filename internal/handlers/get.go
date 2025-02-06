@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// Обработчик GET-запроса для получения короткой ссылки
+// GetShortURL Обработчик GET-запроса для получения короткой ссылки
 func (h *Handler) GetShortURL(w http.ResponseWriter, r *http.Request) {
 	// Проверка на правильный метод запроса
 	if r.Method != http.MethodGet {
@@ -21,7 +21,7 @@ func (h *Handler) GetShortURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Получаем короткий URL из хранилища
-	shortURL, err := h.Service.Repo.ShortURL(id)
+	shortURL, err := h.Service.Repo.GetShortURL(id)
 	if err != nil {
 		// Если не нашли короткую ссылку, возвращаем ошибку
 		http.Error(w, "Not found!", http.StatusNotFound)

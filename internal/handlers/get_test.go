@@ -11,17 +11,18 @@ import (
 	"net/http/httptest"
 	"testing"
 	"url-shortener/internal/handlers/testdata"
+	"url-shortener/internal/service"
 	"url-shortener/internal/storage"
 )
 
 func TestGetShortURL(t *testing.T) {
 	mockRepo := new(testdata.MockRepository)
-	service := &storage.Service{Repo: mockRepo}
+	mockService := &service.Service{Repo: mockRepo}
 
 	// Настроим возвращаемое значение для существующей короткой ссылки
 	shortURL := &storage.ShortURL{FullURL: "https://example.com", ID: "1234Qwer"}
-	mockRepo.On("ShortURL", "1234Qwer").Return(shortURL, nil)
-	mockRepo.On("ShortURL", "as123DD1").Return(nil, errors.New("not found"))
+	mockRepo.On("GetShortURL", "1234Qwer").Return(shortURL, nil)
+	mockRepo.On("GetShortURL", "as123DD1").Return(nil, errors.New("not found"))
 
 	type want struct {
 		code        int
@@ -97,7 +98,7 @@ func TestGetShortURL(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			handler := &Handler{Service: service}
+			handler := &Handler{Service: mockService}
 
 			request := httptest.NewRequest(test.method, test.path, nil)
 			ctx := chi.NewRouteContext()

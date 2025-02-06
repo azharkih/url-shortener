@@ -13,24 +13,27 @@ import (
 	"testing"
 	"url-shortener/internal/config"
 	"url-shortener/internal/handlers/testdata"
+	"url-shortener/internal/service"
 	"url-shortener/internal/storage"
 )
 
 func TestPostRoot(t *testing.T) {
 	mockRepo := new(testdata.MockRepository)
 
-	mockRepo.On("ShortURL", mock.Anything).Return(nil, errors.New("not found")).Maybe()
+	mockRepo.On("GetShortURL", mock.Anything).Return(nil, errors.New("not found")).Maybe()
 
-	mockRepo.On("CreateShortURL", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+	mockRepo.On("SetShortURL", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		shortURL := args.Get(0).(*storage.ShortURL)
 		shortURL.ID = "mock1234"
 	}).Once()
 
-	// Создаем сервис с мок репозиторием
-	service := &storage.Service{Repo: mockRepo}
+	cfg, err := config.NewConfig()
+	require.NoError(t, err) // Проверяем, что конфиг успешно загружен
+
+	mockService := &service.Service{Repo: mockRepo, Config: cfg}
 
 	// Создаем обработчик
-	handler := &Handler{Service: service}
+	handler := &Handler{Service: mockService}
 
 	tests := []struct {
 		name           string
@@ -44,7 +47,7 @@ func TestPostRoot(t *testing.T) {
 			method:         http.MethodPost,
 			body:           "https://example.com",
 			expectedStatus: http.StatusCreated,
-			expectedBody:   fmt.Sprintf("%s/%s", config.BaseShortURL, "mock1234"),
+			expectedBody:   fmt.Sprintf("%s/%s", mockService.Config.BaseShortURL, "mock1234"),
 		},
 		{
 			name:           "only POST method allowed",
