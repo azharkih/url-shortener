@@ -17,7 +17,7 @@ import (
 	"url-shortener/internal/service"
 )
 
-func TestPostRoot(t *testing.T) {
+func TestShorten(t *testing.T) {
 	mockRepo := new(testdata.MockRepository)
 
 	mockRepo.On("GetShortURL", mock.Anything).Return(nil, errors.New("not found")).Maybe()
@@ -50,7 +50,7 @@ func TestPostRoot(t *testing.T) {
 		{
 			name:           "negative case #2",
 			method:         http.MethodPost,
-			body:           "example.com",
+			body:           "beliberda",
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   "Invalid URL format\n",
 		},

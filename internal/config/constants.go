@@ -21,6 +21,10 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 
+	// Проверяем, были ли уже разобраны флаги
+	if flag.Parsed() {
+		return &cfg, nil
+	}
 	// Определяем флаги
 	serverAddr := flag.String(
 		"a", cfg.ServerAddress, "Address for HTTP server (e.g., localhost:8080)")

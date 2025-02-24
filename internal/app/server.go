@@ -18,6 +18,7 @@ func NewAppMux(s *service.Service, logger *zap.SugaredLogger) *chi.Mux {
 	// Регистрируем обработчики
 	router.Post("/", handler.PostRoot)
 	router.Get("/{id}", handler.GetShortURL)
+	router.Post("/api/shorten", handler.PostShorten)
 
 	return router
 }
