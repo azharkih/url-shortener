@@ -4,13 +4,22 @@ import (
 	"fmt"
 	"url-shortener/internal/config"
 	"url-shortener/internal/handlers/models"
-	"url-shortener/internal/storage"
 )
+
+// Shortener определяет поведение сохранения сокращенной ссылки.
+type Shortener interface {
+	SetShortURL(shortURL *models.ShortURL) error
+}
+
+// Retriever определяет поведение извлечения оригинальной ссылки.
+type Retriever interface {
+	GetShortURL(id string) (*models.ShortURL, error)
+}
 
 // Storage объединяет оба интерфейса
 type Storage interface {
-	storage.Shortener
-	storage.Retriever
+	Shortener
+	Retriever
 }
 
 // Service Сервис для работы с URL

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"url-shortener/internal/app"
 	"url-shortener/internal/config"
@@ -15,7 +16,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer logger.Sync()
+	defer func(logger *zap.Logger) {
+		err := logger.Sync()
+		if err != nil {
+			log.Println(err)
+		}
+	}(logger)
 	sugarLogger := logger.Sugar()
 
 	appConfig, err := config.NewConfig()
@@ -24,8 +30,13 @@ func main() {
 		return
 	}
 
-	memoryStorage := storage.NewMemoryStorage()
-	storageService := service.NewService(memoryStorage, appConfig)
+	fileStorage, err := storage.NewFileStorage(appConfig.FileStoragePath)
+	if err != nil {
+		sugarLogger.Fatalw("Failed to initialize file storage", "error", err)
+		return
+	}
+
+	storageService := service.NewService(fileStorage, appConfig)
 
 	sugarLogger.Infow("Starting server", "address", appConfig.ServerAddress)
 
