@@ -2,14 +2,14 @@ package config
 
 import (
 	"flag"
-	"fmt"
 	"github.com/caarlos0/env/v10"
 )
 
 // Config содержит настройки приложения
 type Config struct {
-	ServerAddress string `env:"APP_ADDRESS" envDefault:"localhost:8080"`
-	BaseShortURL  string `env:"BASE_URL" envDefault:"http://localhost:8080"`
+	ServerAddress   string `env:"APP_ADDRESS" envDefault:"localhost:8080"`
+	BaseShortURL    string `env:"BASE_URL" envDefault:"http://localhost:8080"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"shorturls.json"`
 }
 
 // NewConfig загружает конфигурацию из переменных окружения и флагов
@@ -21,11 +21,15 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 
+	// Проверяем, были ли уже разобраны флаги
+	if flag.Parsed() {
+		return &cfg, nil
+	}
+
 	// Определяем флаги
-	serverAddr := flag.String(
-		"a", cfg.ServerAddress, "Address for HTTP server (e.g., localhost:8080)")
-	baseURL := flag.String(
-		"b", cfg.BaseShortURL, "Base URL for short links (e.g., http://localhost:8080)")
+	serverAddr := flag.String("a", cfg.ServerAddress, "Address for HTTP server (e.g., localhost:8080)")
+	baseURL := flag.String("b", cfg.BaseShortURL, "Base URL for short links (e.g., http://localhost:8080)")
+	fileStoragePath := flag.String("f", cfg.FileStoragePath, "Path to file for storage")
 
 	// Разбираем флаги
 	flag.Parse()
@@ -36,8 +40,9 @@ func NewConfig() (*Config, error) {
 	}
 	if *baseURL != "" {
 		cfg.BaseShortURL = *baseURL
-	} else {
-		cfg.BaseShortURL = fmt.Sprintf("http://%s", cfg.ServerAddress)
+	}
+	if *fileStoragePath != "" {
+		cfg.FileStoragePath = *fileStoragePath
 	}
 
 	return &cfg, nil

@@ -2,26 +2,37 @@ package service
 
 import (
 	"fmt"
+	"go.uber.org/zap"
 	"url-shortener/internal/config"
 	"url-shortener/internal/handlers/models"
-	"url-shortener/internal/storage"
 )
+
+// Shortener определяет поведение сохранения сокращенной ссылки.
+type Shortener interface {
+	SetShortURL(shortURL *models.ShortURL) error
+}
+
+// Retriever определяет поведение извлечения оригинальной ссылки.
+type Retriever interface {
+	GetShortURL(id string) (*models.ShortURL, error)
+}
 
 // Storage объединяет оба интерфейса
 type Storage interface {
-	storage.Shortener
-	storage.Retriever
+	Shortener
+	Retriever
 }
 
 // Service Сервис для работы с URL
 type Service struct {
 	Repo   Storage
 	Config *config.Config
+	Logger *zap.SugaredLogger
 }
 
 // NewService Конструктор сервиса
-func NewService(repo Storage, config *config.Config) *Service {
-	return &Service{Repo: repo, Config: config}
+func NewService(repo Storage, config *config.Config, logger *zap.SugaredLogger) *Service {
+	return &Service{Repo: repo, Config: config, Logger: logger}
 }
 
 // CreateShortLink Генерация новой короткой ссылки

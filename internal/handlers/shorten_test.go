@@ -18,7 +18,7 @@ import (
 	"url-shortener/internal/service"
 )
 
-func TestPostRoot(t *testing.T) {
+func TestShorten(t *testing.T) {
 	mockRepo := new(testdata.MockRepository)
 
 	mockRepo.On("GetShortURL", mock.Anything).Return(nil, errors.New("not found")).Maybe()
@@ -29,7 +29,7 @@ func TestPostRoot(t *testing.T) {
 	}).Once()
 
 	cfg, err := config.NewConfig()
-	require.NoError(t, err)
+	require.NoError(t, err) // Проверяем, что конфиг успешно загружен
 
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
@@ -55,7 +55,7 @@ func TestPostRoot(t *testing.T) {
 		{
 			name:           "negative case #2",
 			method:         http.MethodPost,
-			body:           "example.com",
+			body:           "beliberda",
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   "Invalid URL format\n",
 		},
