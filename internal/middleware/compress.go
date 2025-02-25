@@ -8,24 +8,26 @@ import (
 	"strings"
 )
 
-// CompressResponse сжимает ответ, если клиент поддерживает GZIP.
+// CompressResponse сжимает ответ, если клиент поддерживает GZIP .
 func CompressResponse(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-			contentType := r.Header.Get("Content-Type")
-			if strings.Contains(contentType, "application/json") || strings.Contains(contentType, "text/html") {
-				w.Header().Set("Content-Encoding", "gzip")
-				gzipWriter := gzip.NewWriter(w)
-				defer func(gzipWriter *gzip.Writer) {
-					err := gzipWriter.Close()
-					if err != nil {
-						log.Println("Error closing gzip writer:", err)
-					}
-				}(gzipWriter)
-
-				w = &gzipResponseWriter{ResponseWriter: w, Writer: gzipWriter}
-			}
+		contentType := r.Header.Get("Content-Type")
+		isAcceptEncoding := strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
+		isAvailableType := strings.Contains(contentType, "application/json") || strings.Contains(contentType, "text/html")
+		if !isAcceptEncoding || !isAvailableType {
+			next.ServeHTTP(w, r)
+			return
 		}
+		w.Header().Set("Content-Encoding", "gzip")
+		gzipWriter := gzip.NewWriter(w)
+		defer func(gzipWriter *gzip.Writer) {
+			err := gzipWriter.Close()
+			if err != nil {
+				log.Println("Error closing gzip writer:", err)
+			}
+		}(gzipWriter)
+
+		w = &gzipResponseWriter{ResponseWriter: w, Writer: gzipWriter}
 		next.ServeHTTP(w, r)
 	})
 }
