@@ -3,7 +3,7 @@ package storage
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"go.uber.org/zap"
 	"os"
 	"url-shortener/internal/handlers/models"
 )
@@ -12,13 +12,15 @@ import (
 type FileStorage struct {
 	filePath string
 	data     map[string]*models.ShortURL
+	logger   *zap.SugaredLogger
 }
 
 // NewFileStorage создаёт новое хранилище для файла
-func NewFileStorage(filePath string) (*FileStorage, error) {
+func NewFileStorage(filePath string, logger *zap.SugaredLogger) (*FileStorage, error) {
 	fs := &FileStorage{
 		filePath: filePath,
 		data:     make(map[string]*models.ShortURL),
+		logger:   logger,
 	}
 
 	// Попробуем загрузить данные из файла, если они есть
@@ -42,7 +44,7 @@ func (fs *FileStorage) load() error {
 	defer func(file *os.File) {
 		err := file.Close()
 		if err != nil {
-			log.Printf("Failed to close file: %v", err)
+			fs.logger.Errorf("Failed to close file: %v", err)
 		}
 	}(file)
 
@@ -67,7 +69,7 @@ func (fs *FileStorage) save() error {
 	defer func(file *os.File) {
 		err := file.Close()
 		if err != nil {
-			log.Printf("Failed to close file: %v", err)
+			fs.logger.Errorf("Failed to close file: %v", err)
 		}
 	}(file)
 

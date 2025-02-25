@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 )
@@ -27,28 +26,33 @@ func (h *Handler) PostShorten(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
-		log.Printf("Error reading request body: %v", err)
+		h.Service.Logger.Infow("Error reading request body: %v", err)
 		return
 	}
-	defer r.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			h.Service.Logger.Errorf("Failed to close body: %v", err)
+		}
+	}(r.Body)
 
 	var req ShortenRequest
 	if err := req.UnmarshalJSON(data); err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
-		log.Printf("Invalid JSON: %v", err)
+		h.Service.Logger.Infow("Invalid JSON: %v", err)
 		return
 	}
 
 	if _, err := url.ParseRequestURI(req.URL); err != nil {
 		http.Error(w, "Invalid URL format", http.StatusBadRequest)
-		log.Printf("Invalid URL format: %v", err)
+		h.Service.Logger.Infow("Invalid URL format: %v", err)
 		return
 	}
 
 	shortURL, err := h.Service.CreateShortLink(req.URL)
 	if err != nil {
 		http.Error(w, "Failed to create short URL", http.StatusInternalServerError)
-		log.Printf("Error creating short URL: %v", err)
+		h.Service.Logger.Infow("Error creating short URL: %v", err)
 		return
 	}
 
@@ -58,12 +62,12 @@ func (h *Handler) PostShorten(w http.ResponseWriter, r *http.Request) {
 	jsonData, err := resp.MarshalJSON()
 	if err != nil {
 		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
-		log.Printf("Error marshaling response: %v", err)
+		h.Service.Logger.Infow("Error marshaling response: %v", err)
 		return
 	}
 
 	_, err = w.Write(jsonData)
 	if err != nil {
-		log.Printf("Error writing response: %v", err)
+		h.Service.Logger.Infow("Error writing response: %v", err)
 	}
 }

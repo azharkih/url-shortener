@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 )
@@ -19,7 +18,7 @@ func (h *Handler) PostRoot(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
-		log.Printf("Error reading request body: %v", err)
+		h.Service.Logger.Infow("Error reading request body: %v", err)
 		return
 	}
 	fullURL := string(data)
@@ -28,7 +27,7 @@ func (h *Handler) PostRoot(w http.ResponseWriter, r *http.Request) {
 	_, err = url.ParseRequestURI(fullURL)
 	if err != nil {
 		http.Error(w, "Invalid URL format", http.StatusBadRequest)
-		log.Printf("Invalid URL format: %v", err)
+		h.Service.Logger.Infow("Invalid URL format: %v", err)
 		return
 	}
 
@@ -36,7 +35,7 @@ func (h *Handler) PostRoot(w http.ResponseWriter, r *http.Request) {
 	link, err := h.Service.CreateShortLink(fullURL)
 	if err != nil {
 		http.Error(w, "Failed to create short URL", http.StatusInternalServerError)
-		log.Printf("Error creating short URL: %v", err)
+		h.Service.Logger.Infow("Error creating short URL: %v", err)
 		return
 	}
 
@@ -45,6 +44,6 @@ func (h *Handler) PostRoot(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(link))
 	if err != nil {
-		log.Printf("Error writing response: %v", err)
+		h.Service.Logger.Infow("Error writing response: %v", err)
 	}
 }

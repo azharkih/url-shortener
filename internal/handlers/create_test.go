@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -28,9 +29,13 @@ func TestPostRoot(t *testing.T) {
 	}).Once()
 
 	cfg, err := config.NewConfig()
-	require.NoError(t, err) // Проверяем, что конфиг успешно загружен
+	require.NoError(t, err)
 
-	mockService := &service.Service{Repo: mockRepo, Config: cfg}
+	logger, err := zap.NewDevelopment()
+	require.NoError(t, err)
+	sugarLogger := logger.Sugar()
+
+	mockService := &service.Service{Repo: mockRepo, Config: cfg, Logger: sugarLogger}
 	handler := NewHandler(mockService)
 
 	tests := []struct {

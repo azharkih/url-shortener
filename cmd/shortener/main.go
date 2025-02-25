@@ -27,19 +27,17 @@ func main() {
 	appConfig, err := config.NewConfig()
 	if err != nil {
 		sugarLogger.Fatalw("Failed to load config", "error", err)
-		return
 	}
 
-	fileStorage, err := storage.NewFileStorage(appConfig.FileStoragePath)
+	fileStorage, err := storage.NewFileStorage(appConfig.FileStoragePath, sugarLogger)
 	if err != nil {
 		sugarLogger.Fatalw("Failed to initialize file storage", "error", err)
 		return
 	}
 
-	storageService := service.NewService(fileStorage, appConfig)
+	storageService := service.NewService(fileStorage, appConfig, sugarLogger)
 
 	sugarLogger.Infow("Starting server", "address", appConfig.ServerAddress)
-
 	err = http.ListenAndServe(appConfig.ServerAddress, app.NewAppMux(storageService, sugarLogger))
 	if err != nil {
 		sugarLogger.Fatalw("Server failed", "error", err)

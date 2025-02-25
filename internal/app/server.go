@@ -14,8 +14,8 @@ func NewAppMux(s *service.Service, logger *zap.SugaredLogger) *chi.Mux {
 
 	// Регистрируем middleware
 	router.Use(middleware.RequestLogger(logger))
-	router.Use(middleware.CompressResponse)
-	router.Use(middleware.UncompressRequest)
+	router.Use(middleware.CompressResponse(logger))
+	router.Use(middleware.UncompressRequest(logger))
 
 	// Регистрируем обработчики
 	router.Post("/", handler.PostRoot)

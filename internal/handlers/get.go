@@ -22,13 +22,8 @@ func (h *Handler) GetShortURL(w http.ResponseWriter, r *http.Request) {
 
 	// Получаем короткий URL из хранилища
 	shortURL, err := h.Service.Repo.GetShortURL(id)
-	if err != nil {
+	if err != nil || shortURL == nil {
 		// Если не нашли короткую ссылку, возвращаем ошибку
-		http.Error(w, "Not found!", http.StatusNotFound)
-		return
-	}
-	if shortURL == nil {
-		// Добавьте проверку на nil
 		http.Error(w, "Not found!", http.StatusNotFound)
 		return
 	}
