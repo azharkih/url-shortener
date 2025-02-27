@@ -1,6 +1,7 @@
 package service
 
 import (
+	"database/sql"
 	"fmt"
 	"go.uber.org/zap"
 	"url-shortener/internal/config"
@@ -28,11 +29,13 @@ type Service struct {
 	Repo   Storage
 	Config *config.Config
 	Logger *zap.SugaredLogger
+	DB     *sql.DB
 }
 
 // NewService Конструктор сервиса
-func NewService(repo Storage, config *config.Config, logger *zap.SugaredLogger) *Service {
-	return &Service{Repo: repo, Config: config, Logger: logger}
+func NewService(repo Storage, config *config.Config, logger *zap.SugaredLogger,
+	db *sql.DB) *Service {
+	return &Service{Repo: repo, Config: config, Logger: logger, DB: db}
 }
 
 // CreateShortLink Генерация новой короткой ссылки
