@@ -28,12 +28,12 @@ func TestPostRoot(t *testing.T) {
 		shortURL.ID = "mock1234"
 	}).Once()
 
-	cfg, err := config.NewConfig()
-	require.NoError(t, err)
-
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
 	sugarLogger := logger.Sugar()
+
+	cfg, err := config.NewConfig(sugarLogger)
+	require.NoError(t, err)
 
 	mockService := &service.Service{Repo: mockRepo, Config: cfg, Logger: sugarLogger}
 	handler := NewHandler(mockService)
