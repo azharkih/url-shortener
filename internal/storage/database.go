@@ -3,9 +3,12 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap"
 	"time"
+
 	"url-shortener/internal/handlers/models"
 )
 
@@ -51,7 +54,8 @@ func (ds *DatabaseStorage) init() error {
 		id TEXT PRIMARY KEY,
 		full_url TEXT NOT NULL,
 		created BIGINT NOT NULL
-	);`
+	);
+	CREATE UNIQUE INDEX IF NOT EXISTS idx_full_url ON short_urls(full_url) ;`
 	_, err := ds.db.ExecContext(ctx, query)
 	return err
 }
@@ -66,19 +70,28 @@ func (ds *DatabaseStorage) Ping(timeoutSeconds ...int) error {
 	return nil
 }
 
-// SetShortURL сохраняет сокращённый URL в БД
-func (ds *DatabaseStorage) CreateShortURL(shortURL *models.ShortURL) error {
+// CreateShortURL сохраняет сокращённый URL в БД
+func (ds *DatabaseStorage) CreateShortURL(shortURL *models.ShortURL) (*models.ShortURL, error) {
 	ctx, cancel := ds.withTimeout()
 	defer cancel()
 
-	query := `INSERT INTO short_urls (id, full_url, created) VALUES ($1, $2, $3) 
+	query := `INSERT INTO short_urls (id, full_url, created) VALUES ($1, $2, $3)
 			  ON CONFLICT (id) DO UPDATE SET full_url = EXCLUDED.full_url, created = EXCLUDED.created;`
 	_, err := ds.db.ExecContext(ctx, query, shortURL.ID, shortURL.FullURL, shortURL.Created)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // Ошибка уникальности
+			query := `SELECT id, full_url, created FROM short_urls WHERE full_url = $1 LIMIT 1;`
+			row := ds.db.QueryRowContext(ctx, query, shortURL.FullURL)
+			if err := row.Scan(&shortURL.ID, &shortURL.FullURL, &shortURL.Created); err != nil {
+				return nil, fmt.Errorf("short URL can not be retrieved: %w", err)
+			}
+			return shortURL, ErrURLAlreadyExists
+		}
 		ds.logger.Errorf("Failed to save short URL: %v", err)
-		return err
+		return nil, err
 	}
-	return nil
+	return shortURL, nil
 }
 
 func (ds *DatabaseStorage) CreateBatchShortURLs(shortURLs *[]models.ShortURL) error {
@@ -134,7 +147,7 @@ func (ds *DatabaseStorage) GetShortURL(id string) (*models.ShortURL, error) {
 
 	var shortURL models.ShortURL
 	if err := row.Scan(&shortURL.ID, &shortURL.FullURL, &shortURL.Created); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("short URL not found")
 		}
 		ds.logger.Errorf("Failed to retrieve short URL: %v", err)

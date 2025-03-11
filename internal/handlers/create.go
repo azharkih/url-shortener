@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
+	"url-shortener/internal/storage"
 )
 
 // PostRoot Обработчик POST-запроса для создания короткой ссылки
@@ -33,7 +35,7 @@ func (h *Handler) PostRoot(w http.ResponseWriter, r *http.Request) {
 
 	// Генерация короткой ссылки через сервис
 	link, err := h.Service.CreateShortLink(fullURL)
-	if err != nil {
+	if err != nil && !errors.Is(err, storage.ErrURLAlreadyExists) {
 		http.Error(w, "Failed to create short URL", http.StatusInternalServerError)
 		h.Service.Logger.Infow("Error creating short URL: %v", err)
 		return
@@ -41,7 +43,11 @@ func (h *Handler) PostRoot(w http.ResponseWriter, r *http.Request) {
 
 	// Отправка результата
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusCreated)
+	if errors.Is(err, storage.ErrURLAlreadyExists) {
+		w.WriteHeader(http.StatusConflict)
+	} else {
+		w.WriteHeader(http.StatusCreated)
+	}
 	_, err = w.Write([]byte(link))
 	if err != nil {
 		h.Service.Logger.Infow("Error writing response: %v", err)

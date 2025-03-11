@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"go.uber.org/zap"
 	"url-shortener/internal/config"
@@ -10,7 +11,7 @@ import (
 
 // Creator определяет поведение сохранения сокращенной ссылки.
 type Creator interface {
-	CreateShortURL(shortURL *models.ShortURL) error
+	CreateShortURL(shortURL *models.ShortURL) (*models.ShortURL, error)
 	CreateBatchShortURLs(shortURLs *[]models.ShortURL) error
 }
 
@@ -58,9 +59,11 @@ func (s *Service) CreateShortLink(url string) (string, error) {
 		// Проверка, существует ли уже такая короткая ссылка
 		_, err := s.Repo.GetShortURL(shortURL.ID)
 		if err != nil {
-			// Если ошибка, значит ссылки нет
-			if err := s.Repo.CreateShortURL(shortURL); err == nil {
-				return fmt.Sprintf("%s/%s", s.Config.BaseShortURL, shortURL.ID), nil
+			res, err := s.Repo.CreateShortURL(shortURL)
+			if errors.Is(err, storage.ErrURLAlreadyExists) {
+				return fmt.Sprintf("%s/%s", s.Config.BaseShortURL, res.ID), err
+			} else if err == nil {
+				return fmt.Sprintf("%s/%s", s.Config.BaseShortURL, res.ID), nil
 			}
 		} else {
 			// Если ссылка существует, продолжаем попытки

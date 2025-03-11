@@ -84,9 +84,9 @@ func (fs *FileStorage) save() error {
 }
 
 // CreateShortURL сохраняет сокращённый URL в файл
-func (fs *FileStorage) CreateShortURL(shortURL *models.ShortURL) error {
+func (fs *FileStorage) CreateShortURL(shortURL *models.ShortURL) (*models.ShortURL, error) {
 	fs.data[shortURL.ID] = shortURL
-	return fs.save()
+	return shortURL, fs.save()
 }
 
 // CreateBatchShortURLs сохраняет список сокращенных URL в файл

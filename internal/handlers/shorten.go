@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
+	"url-shortener/internal/storage"
 )
 
 //easyjson:json
@@ -51,6 +54,16 @@ func (h *Handler) PostShorten(w http.ResponseWriter, r *http.Request) {
 
 	shortURL, err := h.Service.CreateShortLink(req.URL)
 	if err != nil {
+		// Проверка на ошибку уникальности URL
+		if errors.Is(err, storage.ErrURLAlreadyExists) {
+			// Возвращаем 409 Conflict и уже существующий короткий URL
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+
+			jsonData, _ := json.Marshal(ShortenResponse{Result: shortURL})
+			_, _ = w.Write(jsonData)
+			return
+		}
 		http.Error(w, "Failed to create short URL", http.StatusInternalServerError)
 		h.Service.Logger.Infow("Error creating short URL: %v", err)
 		return
