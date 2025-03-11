@@ -18,7 +18,12 @@ func (m *MockRepository) GetShortURL(id string) (*models.ShortURL, error) {
 	return args.Get(0).(*models.ShortURL), args.Error(1)
 }
 
-func (m *MockRepository) SetShortURL(shortURL *models.ShortURL) error {
+func (m *MockRepository) CreateShortURL(shortURL *models.ShortURL) error {
 	args := m.Called(shortURL)
+	return args.Error(0)
+}
+
+func (m *MockRepository) CreateBatchShortURLs(shortURLs *[]models.ShortURL) error {
+	args := m.Called(shortURLs)
 	return args.Error(0)
 }

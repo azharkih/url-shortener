@@ -2,8 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -13,27 +11,21 @@ import (
 	"net/http/httptest"
 	"testing"
 	"url-shortener/internal/config"
-	"url-shortener/internal/handlers/models"
 	"url-shortener/internal/handlers/testdata"
 	"url-shortener/internal/service"
 )
 
-func TestPostRoot(t *testing.T) {
+func TestPostBatchShorten(t *testing.T) {
 	mockRepo := new(testdata.MockRepository)
 
-	mockRepo.On("GetShortURL", mock.Anything).Return(nil, errors.New("not found")).Maybe()
-
-	mockRepo.On("CreateShortURL", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		shortURL := args.Get(0).(*models.ShortURL)
-		shortURL.ID = "mock1234"
-	}).Once()
+	mockRepo.On("CreateBatchShortURLs", mock.Anything).Return(nil).Once()
 
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
 	sugarLogger := logger.Sugar()
 
 	cfg, err := config.NewConfig(sugarLogger)
-	require.NoError(t, err)
+	require.NoError(t, err) // Check that the config was successfully loaded
 
 	mockService := &service.Service{Repo: mockRepo, Config: cfg, Logger: sugarLogger}
 	handler := NewHandler(mockService)
@@ -48,14 +40,21 @@ func TestPostRoot(t *testing.T) {
 		{
 			name:           "positive case #1",
 			method:         http.MethodPost,
-			body:           "https://example.com",
+			body:           `[{"correlation_id": "batch1", "original_url": "https://example1.com"}, {"correlation_id": "batch2", "original_url": "https://example2.com"}]`,
 			expectedStatus: http.StatusCreated,
-			expectedBody:   fmt.Sprintf("%s/%s", mockService.Config.BaseShortURL, "mock1234"),
+			expectedBody:   `[{"correlation_id":"batch1","short_url":"http://localhost:8080/batch1"},{"correlation_id":"batch2","short_url":"http://localhost:8080/batch2"}]`,
 		},
 		{
 			name:           "negative case #2",
 			method:         http.MethodPost,
-			body:           "example.com",
+			body:           "beliberda",
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "Invalid JSON format\n",
+		},
+		{
+			name:           "negative case #3",
+			method:         http.MethodPost,
+			body:           `[{"correlation_id": "batch1", "original_url": "example1.com"}, {"correlation_id": "batch2", "original_url": "https://example2.com"}]`,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   "Invalid URL format\n",
 		},
@@ -66,13 +65,20 @@ func TestPostRoot(t *testing.T) {
 			expectedStatus: http.StatusMethodNotAllowed,
 			expectedBody:   "Only POST requests are allowed!\n",
 		},
+		{
+			name:           "empty batch URL",
+			method:         http.MethodPost,
+			body:           `[{"correlation_id": "batch1", "original_url": ""}]`,
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "Invalid URL format\n",
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			request := httptest.NewRequest(test.method, "/", bytes.NewBufferString(test.body))
+			request := httptest.NewRequest(test.method, "/shorten/batch/", bytes.NewBufferString(test.body))
 			w := httptest.NewRecorder()
-			handler.PostRoot(w, request)
+			handler.PostBatchShorten(w, request)
 
 			res := w.Result()
 			err := res.Body.Close()

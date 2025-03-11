@@ -13,9 +13,17 @@ type ShortURL struct {
 }
 
 // NewShortURL Функция для создания объекта ShortURL
-func NewShortURL(fullURL string) *ShortURL {
+func NewShortURL(fullURL string, id ...string) *ShortURL {
+	// Если id не передан, генерируем новый
+	var generatedID string
+	if len(id) == 0 || id[0] == "" {
+		generatedID = hash.GetRandString(8)
+	} else {
+		generatedID = id[0]
+	}
+
 	return &ShortURL{
-		ID:      hash.GetRandString(8),
+		ID:      generatedID,
 		FullURL: fullURL,
 		Created: time.Now().Unix(),
 	}
