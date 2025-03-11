@@ -1,11 +1,11 @@
 package service
 
 import (
-	"database/sql"
 	"fmt"
 	"go.uber.org/zap"
 	"url-shortener/internal/config"
 	"url-shortener/internal/handlers/models"
+	"url-shortener/internal/storage"
 )
 
 // Shortener определяет поведение сохранения сокращенной ссылки.
@@ -18,7 +18,7 @@ type Retriever interface {
 	GetShortURL(id string) (*models.ShortURL, error)
 }
 
-// Storage объединяет оба интерфейса
+// Storage объединяет оба интерфейса + проверку соединения с БД
 type Storage interface {
 	Shortener
 	Retriever
@@ -29,13 +29,22 @@ type Service struct {
 	Repo   Storage
 	Config *config.Config
 	Logger *zap.SugaredLogger
-	DB     *sql.DB
 }
 
 // NewService Конструктор сервиса
-func NewService(repo Storage, config *config.Config, logger *zap.SugaredLogger,
-	db *sql.DB) *Service {
-	return &Service{Repo: repo, Config: config, Logger: logger, DB: db}
+func NewService(repo Storage, config *config.Config, logger *zap.SugaredLogger) *Service {
+	return &Service{Repo: repo, Config: config, Logger: logger}
+}
+
+// PingDB проверяет доступность хранилища
+func (s *Service) PingDB(timeoutSeconds ...int) error {
+	// Проверяем доступность базы данных, если репозиторий это DatabaseStorage
+	if dbStorage, ok := s.Repo.(*storage.DatabaseStorage); ok {
+		return dbStorage.Ping(timeoutSeconds...)
+	}
+
+	// Если это не DatabaseStorage, возвращаем ошибку, так как мы проверяем только БД
+	return fmt.Errorf("unsupported storage type for Ping: %T", s.Repo)
 }
 
 // CreateShortLink Генерация новой короткой ссылки
