@@ -67,7 +67,7 @@ func (ds *DatabaseStorage) Ping(timeoutSeconds ...int) error {
 }
 
 // SetShortURL сохраняет сокращённый URL в БД
-func (ds *DatabaseStorage) SetShortURL(shortURL *models.ShortURL) error {
+func (ds *DatabaseStorage) CreateShortURL(shortURL *models.ShortURL) error {
 	ctx, cancel := ds.withTimeout()
 	defer cancel()
 
@@ -78,6 +78,49 @@ func (ds *DatabaseStorage) SetShortURL(shortURL *models.ShortURL) error {
 		ds.logger.Errorf("Failed to save short URL: %v", err)
 		return err
 	}
+	return nil
+}
+
+func (ds *DatabaseStorage) CreateBatchShortURLs(shortURLs *[]models.ShortURL) error {
+	if len(*shortURLs) == 0 {
+		return nil
+	}
+
+	ctx, cancel := ds.withTimeout()
+	defer cancel()
+
+	tx, err := ds.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func(tx *sql.Tx) {
+		_ = tx.Rollback()
+	}(tx)
+
+	stmt, err := tx.PrepareContext(ctx,
+		"INSERT INTO short_urls (id, full_url, created)"+
+			"VALUES ($1, $2, $3)"+
+			"ON CONFLICT (id) DO UPDATE SET full_url = EXCLUDED.full_url, created = EXCLUDED.created;")
+	if err != nil {
+		return err
+	}
+	defer func(stmt *sql.Stmt) {
+		_ = stmt.Close()
+	}(stmt)
+
+	for _, shortURL := range *shortURLs {
+		_, err := stmt.ExecContext(ctx, shortURL.ID, shortURL.FullURL, shortURL.Created)
+		if err != nil {
+			ds.logger.Errorf("Failed to insert batch short URL: %v", err)
+			return err
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		ds.logger.Errorf("Failed to commit transaction: %v", err)
+		return err
+	}
+
 	return nil
 }
 

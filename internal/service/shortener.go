@@ -8,9 +8,10 @@ import (
 	"url-shortener/internal/storage"
 )
 
-// Shortener определяет поведение сохранения сокращенной ссылки.
-type Shortener interface {
-	SetShortURL(shortURL *models.ShortURL) error
+// Creator определяет поведение сохранения сокращенной ссылки.
+type Creator interface {
+	CreateShortURL(shortURL *models.ShortURL) error
+	CreateBatchShortURLs(shortURLs *[]models.ShortURL) error
 }
 
 // Retriever определяет поведение извлечения оригинальной ссылки.
@@ -20,7 +21,7 @@ type Retriever interface {
 
 // Storage объединяет оба интерфейса + проверку соединения с БД
 type Storage interface {
-	Shortener
+	Creator
 	Retriever
 }
 
@@ -38,13 +39,13 @@ func NewService(repo Storage, config *config.Config, logger *zap.SugaredLogger) 
 
 // PingDB проверяет доступность хранилища
 func (s *Service) PingDB(timeoutSeconds ...int) error {
-	// Проверяем доступность базы данных, если репозиторий это DatabaseStorage
+	// Проверяем доступность базы данных
 	if dbStorage, ok := s.Repo.(*storage.DatabaseStorage); ok {
 		return dbStorage.Ping(timeoutSeconds...)
 	}
 
-	// Если это не DatabaseStorage, возвращаем ошибку, так как мы проверяем только БД
-	return fmt.Errorf("unsupported storage type for Ping: %T", s.Repo)
+	// Если это не DatabaseStorage, возвращаем ошибку
+	return fmt.Errorf("database storage is not configured")
 }
 
 // CreateShortLink Генерация новой короткой ссылки
@@ -58,7 +59,7 @@ func (s *Service) CreateShortLink(url string) (string, error) {
 		_, err := s.Repo.GetShortURL(shortURL.ID)
 		if err != nil {
 			// Если ошибка, значит ссылки нет
-			if err := s.Repo.SetShortURL(shortURL); err == nil {
+			if err := s.Repo.CreateShortURL(shortURL); err == nil {
 				return fmt.Sprintf("%s/%s", s.Config.BaseShortURL, shortURL.ID), nil
 			}
 		} else {
