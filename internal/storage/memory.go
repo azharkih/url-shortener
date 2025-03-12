@@ -39,10 +39,26 @@ func (storage *MemoryStorage) GetShortURL(idx string) (*models.ShortURL, error) 
 	}
 }
 
-func (storage *MemoryStorage) SetShortURL(shortURL *models.ShortURL) error {
+func (storage *MemoryStorage) CreateShortURL(shortURL *models.ShortURL) (*models.ShortURL, error) {
 	storage.Lock()
 	defer storage.Unlock()
 	shortURLRecord := ShortURLRecord{shortURL}
 	storage.shortURLRecords[shortURL.ID] = &shortURLRecord
+	return shortURL, nil
+}
+
+// CreateBatchShortURLs сохраняет список сокращенных URL в памяти
+func (storage *MemoryStorage) CreateBatchShortURLs(shortURLs *[]models.ShortURL) error {
+	if len(*shortURLs) == 0 {
+		return nil // Нет данных для сохранения
+	}
+
+	storage.Lock()
+	defer storage.Unlock()
+
+	for i := range *shortURLs {
+		storage.shortURLRecords[(*shortURLs)[i].ID] = &ShortURLRecord{shortURL: &(*shortURLs)[i]}
+	}
+
 	return nil
 }

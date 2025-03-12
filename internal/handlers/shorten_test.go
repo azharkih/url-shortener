@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -23,17 +22,17 @@ func TestShorten(t *testing.T) {
 
 	mockRepo.On("GetShortURL", mock.Anything).Return(nil, errors.New("not found")).Maybe()
 
-	mockRepo.On("SetShortURL", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+	mockRepo.On("CreateShortURL", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		shortURL := args.Get(0).(*models.ShortURL)
 		shortURL.ID = "mock1234"
 	}).Once()
 
-	cfg, err := config.NewConfig()
-	require.NoError(t, err) // Проверяем, что конфиг успешно загружен
-
 	logger, err := zap.NewDevelopment()
 	require.NoError(t, err)
 	sugarLogger := logger.Sugar()
+
+	cfg, err := config.NewConfig(sugarLogger)
+	require.NoError(t, err) // Проверяем, что конфиг успешно загружен
 
 	mockService := &service.Service{Repo: mockRepo, Config: cfg, Logger: sugarLogger}
 	handler := NewHandler(mockService)
@@ -48,14 +47,21 @@ func TestShorten(t *testing.T) {
 		{
 			name:           "positive case #1",
 			method:         http.MethodPost,
-			body:           "https://example.com",
+			body:           `{"url":"https://example.com"}`,
 			expectedStatus: http.StatusCreated,
-			expectedBody:   fmt.Sprintf("%s/%s", mockService.Config.BaseShortURL, "mock1234"),
+			expectedBody:   `{"result":"http://localhost:8080/mock1234"}`,
 		},
 		{
 			name:           "negative case #2",
 			method:         http.MethodPost,
 			body:           "beliberda",
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "Invalid JSON format\n",
+		},
+		{
+			name:           "negative case #3",
+			method:         http.MethodPost,
+			body:           `{"url": "beliberda"}`,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   "Invalid URL format\n",
 		},
@@ -70,9 +76,9 @@ func TestShorten(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			request := httptest.NewRequest(test.method, "/", bytes.NewBufferString(test.body))
+			request := httptest.NewRequest(test.method, "/shorten/", bytes.NewBufferString(test.body))
 			w := httptest.NewRecorder()
-			handler.PostRoot(w, request)
+			handler.PostShorten(w, request)
 
 			res := w.Result()
 			err := res.Body.Close()

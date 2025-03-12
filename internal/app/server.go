@@ -19,8 +19,10 @@ func NewAppMux(s *service.Service, logger *zap.SugaredLogger) *chi.Mux {
 
 	// Регистрируем обработчики
 	router.Post("/", handler.PostRoot)
+	router.Get("/ping", handler.Ping)
 	router.Get("/{id}", handler.GetShortURL)
 	router.Post("/api/shorten", handler.PostShorten)
+	router.Post("/api/shorten/batch", handler.PostBatchShorten)
 
 	return router
 }
